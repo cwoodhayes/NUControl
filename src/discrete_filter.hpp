@@ -3,6 +3,7 @@
 #include <vector>
 #include <deque>
 #include "helpers.hpp"
+#include "transformations.hpp"
 
 template<typename T, typename G>
 class DiscreteFilter
