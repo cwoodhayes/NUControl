@@ -52,8 +52,8 @@ public:
     sleep_(sleep_fn),
     log_(log_fn)
   {
-    Kp_ = motor_.phase_L * _2_PI_ * 25.f;
-    Ki_ = motor_.phase_R * _2_PI_ * 25.f;
+    Kp_ = motor_.phase_L * _2_PI_ * 25.f; // Ohms = V / A
+    Ki_ = motor_.phase_R * _2_PI_ * 25.f; // Ohms * s = Vs / A
     set_feedback_control(PIController<QuadDirectValues<float>>(Kp_, Ki_, control_period_s_));
     MAX_VOLT_ = 1.5f * motor_.phase_R * motor_.MAX_CURRENT;
     set_filters(filter_cutoff_freq_hz_, filter_cutoff_freq_hz_current_, filter_cutoff_freq_hz_fb_);
@@ -73,12 +73,17 @@ public:
     applited_voltage_filters_.b = Butterworth2nd<float>(cutoff_freq_hz, control_freq_hz_);
     applited_voltage_filters_.c = Butterworth2nd<float>(cutoff_freq_hz, control_freq_hz_);
 
-    feedback_voltage_filters_.a = Butterworth2nd<float>(filter_cutoff_freq_hz_fb_, control_freq_hz_);
-    feedback_voltage_filters_.b = Butterworth2nd<float>(filter_cutoff_freq_hz_fb_, control_freq_hz_);
-    feedback_voltage_filters_.c = Butterworth2nd<float>(filter_cutoff_freq_hz_fb_, control_freq_hz_);
+    feedback_voltage_filters_.a = 
+      Butterworth2nd<float>(filter_cutoff_freq_hz_fb_, control_freq_hz_);
+    feedback_voltage_filters_.b = 
+      Butterworth2nd<float>(filter_cutoff_freq_hz_fb_, control_freq_hz_);
+    feedback_voltage_filters_.c =
+      Butterworth2nd<float>(filter_cutoff_freq_hz_fb_, control_freq_hz_);
   }
 
-  void set_control_mode(ControllerMode ctrl_mode) { ctrl_mode_ = ctrl_mode; }
+  void set_control_mode(ControllerMode ctrl_mode) { 
+    ctrl_mode_ = ctrl_mode; 
+  }
 
   void start_control(int control_period_us)
   {
@@ -99,7 +104,7 @@ public:
 
     shaft_velocity_ = 0.f;
 
-    last_error_   = QuadDirectValues<float>{0.f, 0.f};
+    last_error_ = QuadDirectValues<float>{0.f, 0.f};
     last_command_ = QuadDirectValues<float>{0.f, 0.f};
 
     last_desr_phase_currents_ = PhaseValues<float>{0.f, 0.f, 0.f};
@@ -117,7 +122,7 @@ public:
 
   bool init_components()
   {
-    auto ret_d  = driver_.init();
+    auto ret_d = driver_.init();
     auto ret_cs = cs_.init_sensors();
     set_filters(filter_cutoff_freq_hz_, filter_cutoff_freq_hz_current_, filter_cutoff_freq_hz_fb_);
     return ret_d & ret_cs;
@@ -132,24 +137,28 @@ public:
     log_("=====");
   }
 
+  // find the angle offset between electrical angle 0 and encoder angle 0
   bool align_sensors()
   {
     e_ang_offset_ = 0.f;
 
+    // apply voltage across terminals to figure out which current sense resistors
+    // are on which terminals
     auto ret = cs_.align_sensors(driver_, 0.5f * motor_.phase_R * motor_.SAFE_CURRENT);
     if (!ret) {
       log_("Drivers failed to align");
       return ret;
     }
+    // wait for the system to settle electrically (ie let the inductors discharge)
     sleep_(1000);
 
     update_sensors();
-    open_loop_shaft_angle_    = 0.f;
+    open_loop_shaft_angle_ = 0.f;
     open_loop_shaft_velocity_ = 0.f;
 
     float init_ang = encoder_angle.get_full_angle();
 
-    float offset_sum     = 0.f;
+    float offset_sum = 0.f;
     float offset_pos_sum = 0.f;
     float offset_neg_sum = 0.f;
     int samples = 0;
@@ -176,10 +185,14 @@ public:
     if (new_ang > init_ang + 0.1f) {
       pos_sensor_dir_ = calibration_dir_;
       offset_sum = offset_pos_sum;
-    } else if (new_ang < init_ang - 0.1f) {
+    } 
+    else if (new_ang < init_ang - 0.1f)
+    {
       pos_sensor_dir_ = -calibration_dir_;
       offset_sum = offset_neg_sum;
-    } else {
+    } 
+    else 
+    {
       log_("No motion detected. Is Encoder Working?");
       log_("Initial Angle: " + std::to_string(init_ang));
       log_("Final Angle: "   + std::to_string(new_ang));
@@ -220,13 +233,13 @@ public:
     return ret;
   }
 
-  float get_eangle_offset()  const { return e_ang_offset_; }
-  float get_shaft_angle()    const { return shaft_angle_; }
-  float get_shaft_radians()  const { return normalize_angle(shaft_angle_); }
-  float get_encoder_angle()  const { return encoder_angle.get_full_angle(); }
-  float get_encoder_radians()const { return encoder_angle.get_angle(); }
+  float get_eangle_offset() const { return e_ang_offset_; }
+  float get_shaft_angle() const { return shaft_angle_; }
+  float get_shaft_radians() const { return normalize_angle(shaft_angle_); }
+  float get_encoder_angle() const { return encoder_angle.get_full_angle(); }
+  float get_encoder_radians() const { return encoder_angle.get_angle(); }
   float get_shaft_velocity() const { return shaft_velocity_; }
-  MotorParameters get_motor()const { return motor_; }
+  MotorParameters get_motor() const { return motor_; }
 
   void set_encoder_direction(int dir)
   {
@@ -250,22 +263,22 @@ public:
   {
     disable_anticog();
     anticog_enable_ = true;
-    torque_mapper_  = torque_mapper;
+    torque_mapper_ = torque_mapper;
   }
 
   void enable_anticog(const std::function<PhaseValues<float>(float)> & volt_mapper)
   {
     disable_anticog();
     anticog_volt_enable_ = true;
-    volt_mapper_         = volt_mapper;
+    volt_mapper_ = volt_mapper;
   }
 
   void disable_anticog()
   {
     anticog_volt_enable_ = false;
-    anticog_enable_      = false;
+    anticog_enable_ = false;
     torque_mapper_ = [](float) -> float { return 0.f; };
-    volt_mapper_   = [](float) -> PhaseValues<float> { return {0.f, 0.f, 0.f}; };
+    volt_mapper_ = [](float) -> PhaseValues<float> { return {0.f, 0.f, 0.f}; };
   }
 
   void set_feedforward_state(bool state)    { feedforward_enable_ = state; }
@@ -301,6 +314,9 @@ public:
         open_loop_shaft_angle_    += (target_ * control_period_s_);
         open_loop_shaft_velocity_  = target_;
         {
+          // In this case, the target is a desired shaft velocity
+          // Everything is an estimate in open loop
+
           float back_emf  = motor_.kV * target_;
           auto phase_volts = quaddirect_to_phases<float>(
             {motor_.phase_R * motor_.SAFE_CURRENT + back_emf, 0.f},
@@ -312,27 +328,43 @@ public:
 
       case ControllerMode::TORQUE:
         {
+          // Add in cogging torque if needed 
           if (anticog_enable_) { target_ += torque_mapper_(shaft_angle_ - cogging_offset_); }
 
+          // Convert requested torque into a current request
           float requested_current = target_ / motor_.kT;
+
+          // Let's limit to the stall current of the motor
+          // We don't know user's intentions so we can't just limit to safe current
           requested_current = std::clamp(requested_current, -motor_.MAX_CURRENT, motor_.MAX_CURRENT);
 
+          // Generate desired current in QD frame, D = 0;
           QuadDirectValues<float> desr_current{requested_current, 0.f};
 
           PhaseValues<float> ctrl_volts{0.f, 0.f, 0.f};
-          if (feedforward_enable_) { ctrl_volts += feedforward(desr_current); }
-          if (feedback_enable_)    { ctrl_volts += feedback(desr_current); }
-          if (back_emf_enable_)    { ctrl_volts += back_emf_decoupler(); }
+          
+          // Pump controllers
+          if(feedforward_enable_) { ctrl_volts += feedforward(desr_current); }
+          if(feedback_enable_) { ctrl_volts += feedback(desr_current); }
+          if(back_emf_enable_) { ctrl_volts += back_emf_decoupler(); }
 
+          //Apply filter to these controllers 
           auto filtered_ctrl_volts = filter_phase_voltages(ctrl_volts);
 
-          if (anticog_volt_enable_) {
+          // We don't want to filter this as this is a real thing
+          // Although, unless your motor had an insane pole pair count(> 500), the filters should not catch this
+          if(anticog_volt_enable_){
             filtered_ctrl_volts += volt_mapper_(shaft_angle_ - cogging_offset_);
           }
-
+          
+          // Shift all voltages by 1 to avoid setting PWM pin to 0 as it will switch to digital and cause delays
+          // (this happens on the teensy, may happen elsewhere too; doesn't hurt us to do)
           const auto dr_volts = center_phase_voltages(filtered_ctrl_volts) + PhaseValues<float>{1.f, 1.f, 1.f};
+          
           last_phase_volts_ = dr_volts;
+
           driver_.set_phase_voltages(dr_volts);
+
         }
         return;
 
@@ -410,6 +442,9 @@ private:
   float control_period_s_  = 100.f * 1e-6f;
   float control_freq_hz_   = 10000.f;
 
+  // radians / s
+  float MAX_BACK_EMF_VELOCITY_ = 300.f;
+
   float MAX_VOLT_ = 3.f;
 
   bool anticog_enable_      = false;
@@ -442,7 +477,7 @@ private:
   PhaseValues<float> back_emf_decoupler()
   {
     auto bemf_volt = std::clamp(
-      0.5f * motor_.kV * shaft_velocity_, -motor_.kV * 300.f, motor_.kV * 300.f);
+      motor_.kV * shaft_velocity_, -motor_.kV * MAX_BACK_EMF_VELOCITY_, motor_.kV * MAX_BACK_EMF_VELOCITY_);
     return quaddirect_to_phases<float>({bemf_volt, 0.f}, electrical_angle_);
   }
 
