@@ -36,16 +36,16 @@ class AnticoggingCompensator{
     float ang = normalize_angle(rads);
     if(ang < 0) { ang += _2_PI_; }
 
-    float idx = (static_cast<float>(steps_) / _2_PI_ * ang);
-    const int idl = (floor(idx) == static_cast<float>(steps_)) ? 0 : static_cast<int>(floor(idx));
+    float continuous_idx = (static_cast<float>(steps_) / _2_PI_ * ang);
+    const int idl = (floor(continuous_idx) == static_cast<float>(steps_)) ? 0 : static_cast<int>(floor(continuous_idx));
     const int idu = (idl == static_cast<int>(steps_) - 1) ? 0 : idl + 1;
 
     // weight_l: fraction of the interval remaining to the upper index (weights lower)
     // weight_u: fraction of the interval consumed from the lower index (weights upper)
-    const float weight_u = idx - floor(idx);
-    const float weight_l = 1.f - weight_u;
+    const float beta = continuous_idx - floor(continuous_idx);
+    const float alpha = 1.f - beta;
 
-    return anticog_torque_map_.at(idl) * weight_l + anticog_torque_map_.at(idu) * weight_u;
+    return anticog_torque_map_.at(idl) * alpha + anticog_torque_map_.at(idu) * beta;
   }
 
   PhaseValues<float> get_cogging_voltage(const float rads)
