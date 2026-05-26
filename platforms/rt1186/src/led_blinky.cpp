@@ -9,8 +9,6 @@
 #include "app.hpp"
 
 volatile uint32_t g_systickCounter;
-/* The PIN status */
-volatile bool g_pinSet = false;
 
 void SysTick_Handler(void)
 {
