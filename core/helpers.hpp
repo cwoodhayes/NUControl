@@ -6,7 +6,8 @@
 constexpr float _1__SQRT_3_ = 0.57735026919f;
 constexpr float _2__SQRT_3_ = 1.15470053838f;
 constexpr float _SQRT_3__2_ = 0.866025403784f;
-constexpr float _2_PI_ = 2.0f * M_PI;
+constexpr float _PI_ = M_PI;
+constexpr float _2_PI_ = 2.0f * _PI_;
 constexpr float _SQRT_2_ = 1.41421356237f;
 
 
