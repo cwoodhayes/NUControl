@@ -21,7 +21,6 @@ InlineCurrentSensor Current_Phase_0{A0, CURR_GAIN, ADC_RES};
 InlineCurrentSensor Current_Phase_1{A1, CURR_GAIN, ADC_RES};
 CurrentSensorPackage<2> Current_Sensors1{
   {&Current_Phase_0, &Current_Phase_1},
-  [](int ms){ delay(ms); },
   [](const std::string & s){ Serial.println(s.c_str()); }};
 
 constexpr float PWM_FREQ = 20000.f;

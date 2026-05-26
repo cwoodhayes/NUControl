@@ -32,7 +32,7 @@ struct FailingCurrentSensor : public ICurrentSensor
 TEST_CASE("init_sensors: returns true when all sensors init successfully", "[package]")
 {
   MockCurrentSensor s0, s1;
-  CurrentSensorPackage<2> pkg{{{&s0, &s1}}, no_sleep};
+  CurrentSensorPackage<2> pkg{{{&s0, &s1}}};
   REQUIRE(pkg.init_sensors());
 }
 
@@ -40,7 +40,7 @@ TEST_CASE("init_sensors: returns false if any sensor fails", "[package]")
 {
   MockCurrentSensor s0;
   FailingCurrentSensor s1;
-  CurrentSensorPackage<2> pkg{{{&s0, &s1}}, no_sleep};
+  CurrentSensorPackage<2> pkg{{{&s0, &s1}}};
   REQUIRE_FALSE(pkg.init_sensors());
 }
 
@@ -51,7 +51,7 @@ TEST_CASE("get_phase_currents: returns zero before alignment", "[package]")
   MockCurrentSensor s0, s1;
   s0.value = 1.f;
   s1.value = 2.f;
-  CurrentSensorPackage<2> pkg{{{&s0, &s1}}, no_sleep};
+  CurrentSensorPackage<2> pkg{{{&s0, &s1}}};
 
   auto result = pkg.get_phase_currents(false);
   REQUIRE_THAT(result.a, WithinAbs(0.f, tol));
@@ -64,7 +64,7 @@ TEST_CASE("load_calibration: maps sensors to phases with correct directions", "[
   MockCurrentSensor s0, s1;
   s0.value = 3.f;
   s1.value = -5.f;
-  CurrentSensorPackage<2> pkg{{{&s0, &s1}}, no_sleep};
+  CurrentSensorPackage<2> pkg{{{&s0, &s1}}};
 
   // sensor 0 -> phase A (positive), sensor 1 -> phase B (negative direction), phase C reconstructed
   pkg.load_calibration({0, 1, -1}, {1, -1, 0});
@@ -81,7 +81,7 @@ TEST_CASE("get_phase_currents: 3-sensor, all phases directly measured", "[packag
   s0.value = 1.f;
   s1.value = 2.f;
   s2.value = -3.f;
-  CurrentSensorPackage<3> pkg{{{&s0, &s1, &s2}}, no_sleep};
+  CurrentSensorPackage<3> pkg{{{&s0, &s1, &s2}}};
 
   pkg.load_calibration({0, 1, 2}, {1, 1, 1});
 
@@ -98,7 +98,7 @@ TEST_CASE("get_phase_currents: 2-sensor Kirchhoff reconstructs missing phase A",
   MockCurrentSensor s0, s1;
   s0.value = 1.f;
   s1.value = 2.f;
-  CurrentSensorPackage<2> pkg{{{&s0, &s1}}, no_sleep};
+  CurrentSensorPackage<2> pkg{{{&s0, &s1}}};
   pkg.load_calibration({-1, 0, 1}, {0, 1, 1}); // phase A missing
 
   auto v = pkg.get_phase_currents(false);
@@ -112,7 +112,7 @@ TEST_CASE("get_phase_currents: 2-sensor Kirchhoff reconstructs missing phase C",
   MockCurrentSensor s0, s1;
   s0.value = 4.f;
   s1.value = -1.f;
-  CurrentSensorPackage<2> pkg{{{&s0, &s1}}, no_sleep};
+  CurrentSensorPackage<2> pkg{{{&s0, &s1}}};
   pkg.load_calibration({0, 1, -1}, {1, 1, 0}); // phase C missing
 
   auto v = pkg.get_phase_currents(false);
@@ -128,7 +128,7 @@ TEST_CASE("get_phase_currents: filter=false uses read(), filter=true uses read_f
   TrackingCurrentSensor s0, s1;
   s0.value = 2.f;
   s1.value = 3.f;
-  CurrentSensorPackage<2> pkg{{{&s0, &s1}}, no_sleep};
+  CurrentSensorPackage<2> pkg{{{&s0, &s1}}};
   pkg.load_calibration({0, 1, -1}, {1, 1, 0});
 
   auto raw = pkg.get_phase_currents(false);
@@ -145,7 +145,7 @@ TEST_CASE("get_phase_currents: filter=false uses read(), filter=true uses read_f
 TEST_CASE("set_filters: propagates to all sensors", "[package]")
 {
   TrackingCurrentSensor s0, s1;
-  CurrentSensorPackage<2> pkg{{{&s0, &s1}}, no_sleep};
+  CurrentSensorPackage<2> pkg{{{&s0, &s1}}};
 
   pkg.set_filters(DiscreteFilter<float, float>{});
 

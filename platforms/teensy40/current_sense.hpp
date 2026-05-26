@@ -10,7 +10,6 @@
 class InlineCurrentSensor : public ICurrentSensor
 {
 public:
-  InlineCurrentSensor() = default;
   ~InlineCurrentSensor() override = default;
 
   /// @param pin - Which pin to analogRead for the current data

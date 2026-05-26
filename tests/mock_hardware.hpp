@@ -43,7 +43,7 @@ static auto no_sleep = [](int){};
 inline CurrentSensorPackage<2> make_mock_sensor_package(
     MockCurrentSensor &s0, MockCurrentSensor &s1)
 {
-  CurrentSensorPackage<2> pkg{{{&s0, &s1}}, no_sleep};
+  CurrentSensorPackage<2> pkg{{{&s0, &s1}}};
   pkg.load_calibration({0, 1, -1}, {1, 1, 0});
   return pkg;
 }

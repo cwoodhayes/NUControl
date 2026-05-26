@@ -15,16 +15,14 @@ class CurrentSensorPackage
   static_assert(N == 2 || N == 3, "only 2 or 3 current sensors supported");
 
 public:
-  using LogFn   = std::function<void(const std::string &)>;
-  using SleepFn = std::function<void(int /*ms*/)>;
+  using LogFn = std::function<void(const std::string &)>;
 
   CurrentSensorPackage() = delete;
 
   CurrentSensorPackage(
       std::array<ICurrentSensor *, N> sensors,
-      SleepFn sleep_fn,
       LogFn log_fn = [](const std::string &) {})
-      : sensors_(sensors), sleep_(sleep_fn), log_(log_fn)
+      : sensors_(sensors), log_(log_fn)
   {
   }
 
@@ -50,11 +48,35 @@ public:
 
   bool load_calibration(PhaseValues<int> phase_idx, PhaseValues<int> phase_dirs)
   {
+    // Validate indices are in range and no two phases share a sensor.
+    const int indices[3] = {phase_idx.a, phase_idx.b, phase_idx.c};
+    for (int idx : indices)
+    {
+      if (idx < -1 || idx >= static_cast<int>(N))
+      {
+        log_("load_calibration: sensor index out of range");
+        return false;
+      }
+    }
+    // Check for duplicate assignments (two phases claiming the same sensor).
+    for (int i = 0; i < 3; ++i)
+    {
+      if (indices[i] == -1) continue;
+      for (int j = i + 1; j < 3; ++j)
+      {
+        if (indices[i] == indices[j])
+        {
+          log_("load_calibration: duplicate sensor index");
+          return false;
+        }
+      }
+    }
+
     phase_idx_  = phase_idx;
     phase_dirs_ = phase_dirs;
     print_calibration();
     aligned_ = true;
-    return aligned_;
+    return true;
   }
 
   PhaseValues<float> get_phase_currents(bool filter = true)
@@ -107,8 +129,7 @@ public:
 
 private:
   std::array<ICurrentSensor *, N> sensors_;
-  SleepFn sleep_;
-  LogFn   log_;
+  LogFn log_;
 
   PhaseValues<int> phase_idx_{-1, -1, -1};
   PhaseValues<int> phase_dirs_{0, 0, 0};
