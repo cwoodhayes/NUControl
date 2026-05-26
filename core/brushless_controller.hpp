@@ -247,6 +247,7 @@ public:
   float get_encoder_angle() const { return encoder_angle.get_full_angle(); }
   float get_encoder_radians() const { return encoder_angle.get_angle(); }
   float get_shaft_velocity() const { return shaft_velocity_; }
+  float get_open_loop_angle() const { return open_loop_shaft_angle_; }
   MotorParameters get_motor() const { return motor_; }
 
   void set_encoder_direction(int dir)

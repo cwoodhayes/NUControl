@@ -1,46 +1,6 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
-#include "brushless_controller.hpp"
-
-// --- Mock implementations ---
-
-struct MockEncoder : public IAbsoluteEncoder
-{
-  float angle = 0.f;
-  float read() override { return angle; }
-};
-
-struct MockDriver : public IBrushlessDriver
-{
-  PhaseValues<float> last_voltages{0.f, 0.f, 0.f};
-  bool enabled = false;
-  int  set_count = 0;
-
-  bool init() override { return true; }
-  void enable()  override { enabled = true; }
-  void disable() override { enabled = false; last_voltages = {0.f, 0.f, 0.f}; }
-
-  PhaseValues<int> set_phase_voltages(PhaseValues<float> v) override
-  {
-    last_voltages = v;
-    ++set_count;
-    return {0, 0, 0};
-  }
-};
-
-struct MockSensorPackage : public ICurrentSensorPackage
-{
-  PhaseValues<float> currents{0.f, 0.f, 0.f};
-
-  bool init_sensors() override { return true; }
-  PhaseValues<float> get_phase_currents(bool /*filter*/) override { return currents; }
-  void set_filters(DiscreteFilter<float, float>) override {}
-  void print_calibration() override {}
-  bool align_sensors(IBrushlessDriver &, float) override { return true; }
-  bool load_calibration(PhaseValues<int>, PhaseValues<int>) override { return true; }
-};
-
-static auto no_sleep = [](int){};
+#include "mock_hardware.hpp"
 
 // --- Tests ---
 
@@ -135,15 +95,8 @@ TEST_CASE("OPEN_LOOP_VELOCITY: shaft angle integrates at commanded rate")
 
   // The open-loop integrator should have accumulated target_vel * steps * period_s radians
   float expected = target_vel * steps * period_s;
-
-  // get_encoder_angle() tracks the raw encoder (fixed at 0), not the open-loop integrator.
-  // We verify indirectly: driver was called each step and produced non-zero voltages
+  REQUIRE_THAT(ctrl.get_open_loop_angle(), Catch::Matchers::WithinAbs(expected, 1e-4f));
   REQUIRE(drv.set_count >= steps);
-  // Phase voltages should be nonzero since target_vel != 0
-  auto v = drv.last_voltages;
-  bool nonzero = std::fabs(v.a) + std::fabs(v.b) + std::fabs(v.c) > 0.f;
-  REQUIRE(nonzero);
-  (void)expected;
 }
 
 TEST_CASE("start_control resets velocity to zero and enables driver")

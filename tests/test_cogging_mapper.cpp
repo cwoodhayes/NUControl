@@ -1,34 +1,6 @@
 #include <catch2/catch_test_macros.hpp>
 #include "cogging_mapper.hpp"
-
-// --- Mocks (same as test_brushless_controller) ---
-
-struct MockEncoder : public IAbsoluteEncoder
-{
-  float angle = 0.f;
-  float read() override { return angle; }
-};
-
-struct MockDriver : public IBrushlessDriver
-{
-  bool enabled = false;
-  bool init() override { return true; }
-  void enable()  override { enabled = true; }
-  void disable() override { enabled = false; }
-  PhaseValues<int> set_phase_voltages(PhaseValues<float>) override { return {0, 0, 0}; }
-};
-
-struct MockSensorPackage : public ICurrentSensorPackage
-{
-  bool init_sensors() override { return true; }
-  PhaseValues<float> get_phase_currents(bool) override { return {0.f, 0.f, 0.f}; }
-  void set_filters(DiscreteFilter<float, float>) override {}
-  void print_calibration() override {}
-  bool align_sensors(IBrushlessDriver &, float) override { return true; }
-  bool load_calibration(PhaseValues<int>, PhaseValues<int>) override { return true; }
-};
-
-static auto no_sleep = [](int){};
+#include "mock_hardware.hpp"
 
 // Helper: build a ready-to-map controller + mapper pair.
 struct Fixture
