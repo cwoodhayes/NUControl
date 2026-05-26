@@ -27,18 +27,25 @@ struct MockDriver : public IBrushlessDriver
   }
 };
 
-struct MockSensorPackage : public ICurrentSensorPackage
+struct MockCurrentSensor : public ICurrentSensor
 {
-  PhaseValues<float> currents{0.f, 0.f, 0.f};
-
-  bool init_sensors() override { return true; }
-  PhaseValues<float> get_phase_currents(bool /*filter*/) override { return currents; }
-  void set_filters(DiscreteFilter<float, float>) override {}
-  void print_calibration() override {}
-  bool align_sensors(IBrushlessDriver &, float) override { return true; }
-  bool load_calibration(PhaseValues<int>, PhaseValues<int>) override { return true; }
+  float value = 0.f;
+  bool init_sensor() override { return true; }
+  float read() override { return value; }
+  float read_filtered() override { return value; }
+  void set_filter(DiscreteFilter<float, float>) override {}
 };
 
 static auto no_sleep = [](int){};
+
+// Pre-aligned 2-sensor package for use in tests.
+// Wraps two MockCurrentSensor instances with phase_idx {0,1,-1} and dirs {1,1,0}.
+inline CurrentSensorPackage<2> make_mock_sensor_package(
+    MockCurrentSensor &s0, MockCurrentSensor &s1)
+{
+  CurrentSensorPackage<2> pkg{{{&s0, &s1}}, no_sleep};
+  pkg.load_calibration({0, 1, -1}, {1, 1, 0});
+  return pkg;
+}
 
 #endif // NUCONTROL_TESTS_MOCK_HARDWARE_HPP

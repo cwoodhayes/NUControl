@@ -19,7 +19,10 @@ constexpr int ADC_RES = 10;
 // pins 14 & 15 on the teensy are connected to the ADC for current sensing
 InlineCurrentSensor Current_Phase_0{A0, CURR_GAIN, ADC_RES};
 InlineCurrentSensor Current_Phase_1{A1, CURR_GAIN, ADC_RES};
-InlineCurrentSensorPackage Current_Sensors1{{&Current_Phase_0, &Current_Phase_1}};
+CurrentSensorPackage<2> Current_Sensors1{
+  {&Current_Phase_0, &Current_Phase_1},
+  [](int ms){ delay(ms); },
+  [](const std::string & s){ Serial.println(s.c_str()); }};
 
 constexpr float PWM_FREQ = 20000.f;
 constexpr int PWM_RES = 12;
@@ -28,7 +31,7 @@ constexpr float DRIVER_VOLTAGE = 24.f;
 const uint16_t EncoderReadCmd = (0b11 << 14) | 0x3FFF;
 SPIEncoder Encoder1{EncoderReadCmd, SPI, 10};
 BrushlessDriver GateDriver1{{3, 4, 5}, 2, PWM_FREQ, PWM_RES, DRIVER_VOLTAGE};
-BrushlessController controller_1{EC45_Flat, GateDriver1, Current_Sensors1, Encoder1,
+BrushlessController<2> controller_1{EC45_Flat, GateDriver1, Current_Sensors1, Encoder1,
   [](int ms){ delay(ms); },
   [](const std::string & s){ Serial.println(s.c_str()); }}; // DISTAL
 

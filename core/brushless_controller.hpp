@@ -7,7 +7,7 @@
 #include "transformations.hpp"
 #include "encoder_interface.hpp"
 #include "driver_interface.hpp"
-#include "current_sensor_interface.hpp"
+#include "current_sensor_package.hpp"
 #include "discrete_filter.hpp"
 #include "motors.hpp"
 
@@ -29,8 +29,11 @@ struct BrushlessCalibration
   const float cogging_offset = 0.f;
 };
 
+template <size_t N>
 class BrushlessController
 {
+  static_assert(N == 2 || N == 3, "only 2 or 3 current sensors supported");
+
 public:
   using LogFn = std::function<void(const std::string &)>;
   using SleepFn = std::function<void(int /*ms*/)>;
@@ -44,7 +47,7 @@ public:
   BrushlessController(
       MotorParameters motor,
       IBrushlessDriver &motor_driver,
-      ICurrentSensorPackage &current_sensors,
+      CurrentSensorPackage<N> &current_sensors,
       IAbsoluteEncoder &pos_sensor,
       SleepFn sleep_fn,
       LogFn log_fn = [](const std::string &) {})
@@ -422,7 +425,7 @@ public:
 private:
   MotorParameters motor_;
   IBrushlessDriver &driver_;
-  ICurrentSensorPackage &cs_;
+  CurrentSensorPackage<N> &cs_;
   IAbsoluteEncoder &position_sensor_;
 
   SleepFn sleep_;
