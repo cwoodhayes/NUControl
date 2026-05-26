@@ -44,6 +44,36 @@ TEST_CASE("init_sensors: returns false if any sensor fails", "[package]")
   REQUIRE_FALSE(pkg.init_sensors());
 }
 
+// --- load_calibration input validation ---------------------------------------
+
+TEST_CASE("load_calibration: rejects out-of-range sensor index", "[package]")
+{
+  MockCurrentSensor s0, s1;
+  CurrentSensorPackage<2> pkg{{{&s0, &s1}}};
+  REQUIRE_FALSE(pkg.load_calibration({2, 1, -1}, {1, 1, 0}));  // index 2 invalid for N=2
+  REQUIRE_FALSE(pkg.load_calibration({0, -2, -1}, {1, 1, 0})); // -2 invalid
+}
+
+TEST_CASE("load_calibration: rejects duplicate sensor indices", "[package]")
+{
+  MockCurrentSensor s0, s1;
+  CurrentSensorPackage<2> pkg{{{&s0, &s1}}};
+  REQUIRE_FALSE(pkg.load_calibration({0, 0, -1}, {1, 1, 0})); // s0 mapped to both A and B
+}
+
+TEST_CASE("load_calibration: does not set aligned on failure", "[package]")
+{
+  MockCurrentSensor s0, s1;
+  s0.value = 1.f;
+  s1.value = 2.f;
+  CurrentSensorPackage<2> pkg{{{&s0, &s1}}};
+  pkg.load_calibration({0, 0, -1}, {1, 1, 0}); // invalid — duplicate
+  auto v = pkg.get_phase_currents(false);
+  REQUIRE_THAT(v.a, WithinAbs(0.f, tol));       // still unaligned, should return zero
+  REQUIRE_THAT(v.b, WithinAbs(0.f, tol));
+  REQUIRE_THAT(v.c, WithinAbs(0.f, tol));
+}
+
 // --- load_calibration / get_phase_currents -----------------------------------
 
 TEST_CASE("get_phase_currents: returns zero before alignment", "[package]")

@@ -421,79 +421,6 @@ public:
     update_control();
   }
 
-  bool run_sensor_alignment(float align_volts)
-  {
-    driver_.enable();
-
-    driver_.set_phase_voltages({align_volts, 0, 0});
-    sleep_(100);
-    auto reads_a = cs_.read_sensors();
-    driver_.set_phase_voltages({0, 0, 0});
-    sleep_(100);
-
-    driver_.set_phase_voltages({0, align_volts, 0});
-    sleep_(100);
-    auto reads_b = cs_.read_sensors();
-    driver_.set_phase_voltages({0, 0, 0});
-    sleep_(100);
-
-    driver_.set_phase_voltages({0, 0, align_volts});
-    sleep_(100);
-    auto reads_c = cs_.read_sensors();
-    driver_.set_phase_voltages({0, 0, 0});
-
-    driver_.disable();
-
-    std::array<PhaseValues<float>, N> sensor_readings;
-    for (size_t i = 0; i < N; ++i)
-    {
-      log_("Sensor number " + std::to_string(i));
-      log_(std::to_string(reads_a.at(i)) + "\t" +
-           std::to_string(reads_b.at(i)) + "\t" +
-           std::to_string(reads_c.at(i)));
-      sensor_readings.at(i) = {reads_a.at(i), reads_b.at(i), reads_c.at(i)};
-    }
-
-    PhaseValues<int> phase_idx{-1, -1, -1};
-    PhaseValues<int> phase_dirs{0, 0, 0};
-
-    for (size_t i = 0; i < N; ++i)
-    {
-      const float max_ =
-          std::max(std::fabs(sensor_readings.at(i).a),
-          std::max(std::fabs(sensor_readings.at(i).b),
-                   std::fabs(sensor_readings.at(i).c)));
-
-      if (max_ < 0.05f)
-      {
-        log_("No current detected on sensor number " + std::to_string(i) +
-             " Read Amps: " + std::to_string(max_));
-        return false;
-      }
-
-      if (max_ == std::fabs(sensor_readings.at(i).a))
-      {
-        phase_idx.a  = static_cast<int>(i);
-        phase_dirs.a = (max_ > sensor_readings.at(i).a) ? -1 : 1;
-        continue;
-      }
-      if (max_ == std::fabs(sensor_readings.at(i).b))
-      {
-        phase_idx.b  = static_cast<int>(i);
-        phase_dirs.b = (max_ > sensor_readings.at(i).b) ? -1 : 1;
-        continue;
-      }
-      if (max_ == std::fabs(sensor_readings.at(i).c))
-      {
-        phase_idx.c  = static_cast<int>(i);
-        phase_dirs.c = (max_ > sensor_readings.at(i).c) ? -1 : 1;
-        continue;
-      }
-    }
-
-    return cs_.load_calibration(phase_idx, phase_dirs);
-  }
-
 private:
   MotorParameters motor_;
   IBrushlessDriver &driver_;
@@ -568,6 +495,80 @@ private:
   { return 0.f; };
   std::function<PhaseValues<float>(float)> volt_mapper_ = [](float) -> PhaseValues<float>
   { return {0.f, 0.f, 0.f}; };
+
+  bool run_sensor_alignment(float align_volts)
+  {
+    driver_.enable();
+
+    driver_.set_phase_voltages({align_volts, 0, 0});
+    sleep_(100);
+    auto reads_a = cs_.read_sensors();
+    driver_.set_phase_voltages({0, 0, 0});
+    sleep_(100);
+
+    driver_.set_phase_voltages({0, align_volts, 0});
+    sleep_(100);
+    auto reads_b = cs_.read_sensors();
+    driver_.set_phase_voltages({0, 0, 0});
+    sleep_(100);
+
+    driver_.set_phase_voltages({0, 0, align_volts});
+    sleep_(100);
+    auto reads_c = cs_.read_sensors();
+    driver_.set_phase_voltages({0, 0, 0});
+
+    driver_.disable();
+
+    std::array<PhaseValues<float>, N> sensor_readings;
+    for (size_t i = 0; i < N; ++i)
+    {
+      log_("Sensor number " + std::to_string(i));
+      log_(std::to_string(reads_a.at(i)) + "\t" +
+           std::to_string(reads_b.at(i)) + "\t" +
+           std::to_string(reads_c.at(i)));
+      sensor_readings.at(i) = {reads_a.at(i), reads_b.at(i), reads_c.at(i)};
+    }
+
+    PhaseValues<int> phase_idx{-1, -1, -1};
+    PhaseValues<int> phase_dirs{0, 0, 0};
+
+    for (size_t i = 0; i < N; ++i)
+    {
+      const float max_ =
+          std::max(std::fabs(sensor_readings.at(i).a),
+          std::max(std::fabs(sensor_readings.at(i).b),
+                   std::fabs(sensor_readings.at(i).c)));
+
+      if (max_ < 0.05f)
+      {
+        log_("No current detected on sensor number " + std::to_string(i) +
+             " Read Amps: " + std::to_string(max_));
+        return false;
+      }
+
+      if (max_ == std::fabs(sensor_readings.at(i).a))
+      {
+        phase_idx.a  = static_cast<int>(i);
+        phase_dirs.a = (max_ > sensor_readings.at(i).a) ? -1 : 1;
+        continue;
+      }
+      if (max_ == std::fabs(sensor_readings.at(i).b))
+      {
+        phase_idx.b  = static_cast<int>(i);
+        phase_dirs.b = (max_ > sensor_readings.at(i).b) ? -1 : 1;
+        continue;
+      }
+      if (max_ == std::fabs(sensor_readings.at(i).c))
+      {
+        phase_idx.c  = static_cast<int>(i);
+        phase_dirs.c = (max_ > sensor_readings.at(i).c) ? -1 : 1;
+        continue;
+      }
+    }
+
+    return cs_.load_calibration(phase_idx, phase_dirs);
+  }
+
 
   PhaseValues<float> feedforward(QuadDirectValues<float> desr_current)
   {
