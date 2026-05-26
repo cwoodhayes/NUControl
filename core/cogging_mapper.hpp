@@ -87,6 +87,7 @@ private:
   size_t timeout_clk_ = 0;
   size_t timeout_max_ = 200000;
 
+  // U2535 Gains
   float kP_ = 1.f;
   float kD_ = 0.1f;
   float kI_ = 0.5f;

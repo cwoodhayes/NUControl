@@ -38,6 +38,9 @@ public:
   BrushlessController() = default;
   ~BrushlessController() = default;
 
+  BrushlessController(const BrushlessController &) = delete;
+  BrushlessController &operator=(const BrushlessController &) = delete;
+
   BrushlessController(
       MotorParameters motor,
       IBrushlessDriver &motor_driver,

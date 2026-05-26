@@ -42,21 +42,6 @@ struct MockSensorPackage : public ICurrentSensorPackage
 
 static auto no_sleep = [](int){};
 
-// Helper: build a controller ready to use (init'd, start_control called)
-static BrushlessController make_controller(
-  MockDriver & drv,
-  MockSensorPackage & cs,
-  MockEncoder & enc,
-  ControllerMode mode = ControllerMode::TORQUE,
-  int period_us = 100)
-{
-  BrushlessController ctrl{EC45_Flat, drv, cs, enc, no_sleep};
-  ctrl.init_components();
-  ctrl.set_control_mode(mode);
-  ctrl.start_control(period_us);
-  return ctrl;
-}
-
 // --- Tests ---
 
 TEST_CASE("DISABLE mode: update_control is a no-op")
