@@ -9,8 +9,6 @@
 #include "transformations.hpp"
 #include "discrete_filter.hpp"
 
-class IBrushlessDriver;
-
 template <size_t N>
 class CurrentSensorPackage
 {
@@ -48,78 +46,6 @@ public:
     log_(std::to_string(phase_dirs_.a));
     log_(std::to_string(phase_dirs_.b));
     log_(std::to_string(phase_dirs_.c));
-  }
-
-  bool align_sensors(IBrushlessDriver &driver, float align_volts = 0.5f)
-  {
-    driver.enable();
-
-    driver.set_phase_voltages({align_volts, 0, 0});
-    sleep_(100);
-    auto reads_a = read_sensors();
-    driver.set_phase_voltages({0, 0, 0});
-    sleep_(100);
-
-    driver.set_phase_voltages({0, align_volts, 0});
-    sleep_(100);
-    auto reads_b = read_sensors();
-    driver.set_phase_voltages({0, 0, 0});
-    sleep_(100);
-
-    driver.set_phase_voltages({0, 0, align_volts});
-    sleep_(100);
-    auto reads_c = read_sensors();
-    driver.set_phase_voltages({0, 0, 0});
-
-    driver.disable();
-
-    std::array<PhaseValues<float>, N> sensor_readings;
-    for (size_t i = 0; i < N; ++i)
-    {
-      log_("Sensor number " + std::to_string(i));
-      log_(std::to_string(reads_a.at(i)) + "\t" +
-           std::to_string(reads_b.at(i)) + "\t" +
-           std::to_string(reads_c.at(i)));
-      sensor_readings.at(i) = {reads_a.at(i), reads_b.at(i), reads_c.at(i)};
-    }
-
-    for (size_t i = 0; i < N; ++i)
-    {
-      const float max_ =
-          std::max(std::fabs(sensor_readings.at(i).a),
-          std::max(std::fabs(sensor_readings.at(i).b),
-                   std::fabs(sensor_readings.at(i).c)));
-
-      if (max_ < 0.05f)
-      {
-        log_("No current detected on sensor number " + std::to_string(i) +
-             " Read Amps: " + std::to_string(max_));
-        return false;
-      }
-
-      if (max_ == std::fabs(sensor_readings.at(i).a))
-      {
-        phase_idx_.a = static_cast<int>(i);
-        phase_dirs_.a = (max_ > sensor_readings.at(i).a) ? -1 : 1;
-        continue;
-      }
-      if (max_ == std::fabs(sensor_readings.at(i).b))
-      {
-        phase_idx_.b = static_cast<int>(i);
-        phase_dirs_.b = (max_ > sensor_readings.at(i).b) ? -1 : 1;
-        continue;
-      }
-      if (max_ == std::fabs(sensor_readings.at(i).c))
-      {
-        phase_idx_.c = static_cast<int>(i);
-        phase_dirs_.c = (max_ > sensor_readings.at(i).c) ? -1 : 1;
-        continue;
-      }
-    }
-
-    print_calibration();
-    aligned_ = true;
-    return aligned_;
   }
 
   bool load_calibration(PhaseValues<int> phase_idx, PhaseValues<int> phase_dirs)
@@ -163,15 +89,6 @@ public:
       sensors_.at(i)->set_filter(filter);
   }
 
-private:
-  std::array<ICurrentSensor *, N> sensors_;
-  SleepFn sleep_;
-  LogFn   log_;
-
-  PhaseValues<int> phase_idx_{-1, -1, -1};
-  PhaseValues<int> phase_dirs_{0, 0, 0};
-  bool aligned_ = false;
-
   std::array<float, N> read_sensors() const
   {
     std::array<float, N> reads{};
@@ -187,6 +104,15 @@ private:
       reads.at(i) = sensors_.at(i)->read_filtered();
     return reads;
   }
+
+private:
+  std::array<ICurrentSensor *, N> sensors_;
+  SleepFn sleep_;
+  LogFn   log_;
+
+  PhaseValues<int> phase_idx_{-1, -1, -1};
+  PhaseValues<int> phase_dirs_{0, 0, 0};
+  bool aligned_ = false;
 };
 
 #endif // NUCONTROL_CORE_CURRENT_SENSOR_PACKAGE_HPP
