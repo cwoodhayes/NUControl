@@ -28,3 +28,7 @@ catch_discover_tests(test_brushless_controller)
 add_executable(test_cogging_mapper test_cogging_mapper.cpp)
 target_link_libraries(test_cogging_mapper PRIVATE nucontrol_core Catch2::Catch2WithMain)
 catch_discover_tests(test_cogging_mapper)
+
+add_executable(test_current_sensor_package test_current_sensor_package.cpp)
+target_link_libraries(test_current_sensor_package PRIVATE nucontrol_core Catch2::Catch2WithMain)
+catch_discover_tests(test_current_sensor_package)
