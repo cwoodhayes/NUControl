@@ -7,7 +7,7 @@
 #include <functional>
 #include "brushless_controller.hpp"
 
-template <std::size_t steps_>
+template <std::size_t steps_, std::size_t N>
 class CoggingMapper
 {
 public:
@@ -17,7 +17,7 @@ public:
   CoggingMapper() = default;
   ~CoggingMapper() = default;
 
-  CoggingMapper(BrushlessController &controller, SleepFn sleep_fn, LogFn log_fn = [](const std::string &) {})
+  CoggingMapper(BrushlessController<N> &controller, SleepFn sleep_fn, LogFn log_fn = [](const std::string &) {})
       : controller_(controller), sleep_(sleep_fn), log_(log_fn)
   {
   }
@@ -70,7 +70,7 @@ public:
   const std::array<PhaseValues<float>, steps_> &phase_volts() const { return phase_volts_; }
 
 private:
-  BrushlessController &controller_;
+  BrushlessController<N> &controller_;
   SleepFn sleep_;
   LogFn log_;
 

@@ -15,7 +15,8 @@ struct MotorTelemetry
   PhaseValues<float> phase_currents{0.f, 0.f, 0.f}; // ia, ib, ic in Amps
   QuadDirectValues<float> qd_currents{0.f, 0.f};    // iq, id in Amps
 
-  void populate(const BrushlessController & ctrl)
+  template <size_t N>
+  void populate(const BrushlessController<N> & ctrl)
   {
     t_us = micros();
     pos = ctrl.get_shaft_angle();

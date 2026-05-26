@@ -19,7 +19,9 @@ constexpr int   ADC_RES   = 10;
 
 InlineCurrentSensor Current_Phase_0{A0, CURR_GAIN, ADC_RES};
 InlineCurrentSensor Current_Phase_1{A1, CURR_GAIN, ADC_RES};
-InlineCurrentSensorPackage Current_Sensors1{{&Current_Phase_0, &Current_Phase_1}};
+CurrentSensorPackage<2> Current_Sensors1{
+  {&Current_Phase_0, &Current_Phase_1},
+  [](const std::string & s){ Serial.println(s.c_str()); }};
 
 constexpr float PWM_FREQ      = 20000.f;
 constexpr int   PWM_RES       = 12;
@@ -29,11 +31,11 @@ const uint16_t EncoderReadCmd = (0b11 << 14) | 0x3FFF;
 SPIEncoder      Encoder1{EncoderReadCmd, SPI, 10};
 BrushlessDriver GateDriver1{{3, 4, 5}, 2, PWM_FREQ, PWM_RES, DRIVER_VOLTAGE};
 
-BrushlessController controller_1{EC45_Flat, GateDriver1, Current_Sensors1, Encoder1,
+BrushlessController<2> controller_1{EC45_Flat, GateDriver1, Current_Sensors1, Encoder1,
   [](int ms){ delay(ms); },
   [](const std::string & s){ Serial.println(s.c_str()); }};
 
-CoggingMapper<MAP_STEPS> mapper{controller_1,
+CoggingMapper<MAP_STEPS, 2> mapper{controller_1,
   [](int ms){ delay(ms); },
   [](const std::string & s){ Serial.println(s.c_str()); }};
 

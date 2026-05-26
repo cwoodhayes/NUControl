@@ -7,12 +7,14 @@ struct Fixture
 {
   MockEncoder       enc;
   MockDriver        drv;
-  MockSensorPackage cs;
-  BrushlessController ctrl;
-  CoggingMapper<4> mapper;   // 4 steps keeps tests fast
+  MockCurrentSensor s0, s1;
+  CurrentSensorPackage<2> cs;
+  BrushlessController<2> ctrl;
+  CoggingMapper<4, 2> mapper;   // 4 steps keeps tests fast
 
   Fixture()
-  : ctrl{EC45_Flat, drv, cs, enc, no_sleep},
+  : cs{make_mock_sensor_package(s0, s1)},
+    ctrl{EC45_Flat, drv, cs, enc, no_sleep},
     mapper{ctrl, no_sleep}
   {
     ctrl.init_components();
