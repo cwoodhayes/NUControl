@@ -1,20 +1,16 @@
-#ifndef CURRENT_SENSOR_INTERFACE_HPP
-#define CURRENT_SENSOR_INTERFACE_HPP
-#include "transformations.hpp"
+#ifndef NUCONTROL_CORE_CURRENT_SENSOR_INTERFACE_HPP
+#define NUCONTROL_CORE_CURRENT_SENSOR_INTERFACE_HPP
+
 #include "discrete_filter.hpp"
 
-class IBrushlessDriver;
-
-class ICurrentSensorPackage
+class ICurrentSensor
 {
 public:
-  virtual ~ICurrentSensorPackage() = default;
-  virtual bool init_sensors() = 0;
-  virtual PhaseValues<float> get_phase_currents(bool filter = true) = 0;
-  virtual void set_filters(DiscreteFilter<float, float> filter) = 0;
-  virtual void print_calibration() = 0;
-  virtual bool align_sensors(IBrushlessDriver & driver, float align_volts = 0.5f) = 0;
-  virtual bool load_calibration(PhaseValues<int> phase_idx, PhaseValues<int> phase_dirs) = 0;
+  virtual ~ICurrentSensor() = default;
+  virtual bool init_sensor() = 0;
+  virtual float read() = 0;
+  virtual float read_filtered() = 0;
+  virtual void set_filter(DiscreteFilter<float, float> filter) = 0;
 };
 
-#endif
+#endif // NUCONTROL_CORE_CURRENT_SENSOR_INTERFACE_HPP
