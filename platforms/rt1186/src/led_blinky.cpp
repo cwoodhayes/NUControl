@@ -24,21 +24,27 @@ extern "C" void SysTick_Handler(void)
     }
 }
 
-static void SysTick_DelayTicks(uint32_t n)
-{
-    g_systickCounter = n;
-    while (g_systickCounter != 0U)
-    {
-    }
-}
-
 /*******************************************************************************
  * ADC / DMA
  ******************************************************************************/
 #define ADC_BUF_SIZE 8U
 
-AT_NONCACHEABLE_SECTION_INIT(volatile uint16_t g_adcBuf[ADC_BUF_SIZE]);
+AT_NONCACHEABLE_SECTION_INIT(volatile uint32_t g_adcBuf[ADC_BUF_SIZE]);
 static edma_handle_t g_edmaHandle;
+static volatile bool g_dmaTransferDone = false;
+
+extern "C" void DMA4_CH0_CH1_CH32_CH33_IRQHandler(void)
+{
+    EDMA_HandleIRQ(&g_edmaHandle);
+}
+
+static void EDMA_Callback(edma_handle_t *handle, void *param, bool transferDone, uint32_t tcds)
+{
+    if (transferDone)
+    {
+        g_dmaTransferDone = true;
+    }
+}
 
 static void ADC_Init(void)
 {
@@ -59,7 +65,7 @@ static void ADC_Init(void)
     LPADC_GetDefaultConvCommandConfig(&commandConfig);
     commandConfig.channelNumber            = DEMO_LPADC_CHANNEL_NUM;
     commandConfig.sampleTimeMode           = kLPADC_SampleTimeADCK5;
-    commandConfig.chainedNextCommandNumber = 1U; /* self-loop for continuous sampling */
+    commandConfig.chainedNextCommandNumber = 1U;
     commandConfig.sampleScaleMode          = kLPADC_SampleFullScale;
     LPADC_SetConvCommandConfig(DEMO_LPADC_BASE, 1U, &commandConfig);
 
@@ -71,37 +77,33 @@ static void ADC_Init(void)
     LPADC_EnableFIFO0WatermarkDMA(DEMO_LPADC_BASE, true);
 }
 
+static void DMA_Arm(void)
+{
+    edma_transfer_config_t transferConfig;
+
+    EDMA_PrepareTransfer(&transferConfig,
+                         (void *)&(DEMO_LPADC_BASE->RESFIFO[0U]),
+                         sizeof(uint32_t),
+                         (void *)g_adcBuf,
+                         sizeof(uint32_t),
+                         sizeof(uint32_t) * 8U,
+                         ADC_BUF_SIZE * sizeof(uint32_t),
+                         kEDMA_PeripheralToMemory);
+
+    EDMA_SubmitTransfer(&g_edmaHandle, &transferConfig);
+    EDMA_StartTransfer(&g_edmaHandle);
+}
+
 static void DMA_Init(void)
 {
     edma_config_t edmaConfig;
-    edma_transfer_config_t transferConfig;
 
     EDMA_GetDefaultConfig(&edmaConfig);
     EDMA_Init(DEMO_DMA_BASE, &edmaConfig);
     EDMA_CreateHandle(&g_edmaHandle, DEMO_DMA_BASE, DEMO_DMA_CHANNEL);
     EDMA_SetChannelMux(DEMO_DMA_BASE, DEMO_DMA_CHANNEL, ADC_DMA_REQUEST_SOURCE);
-
-    EDMA_PrepareTransfer(&transferConfig,
-                         (void *)&(DEMO_LPADC_BASE->RESFIFO[0U]),
-                         2U,
-                         (void *)g_adcBuf,
-                         sizeof(g_adcBuf[0]),
-                         2U * 8U,
-                         ADC_BUF_SIZE * 2U,
-                         kEDMA_PeripheralToMemory);
-
-    /* Wrap destination back to buffer start after each major loop for circular operation */
-    transferConfig.destAddr = (uint32_t)g_adcBuf;
-
-    EDMA_SubmitTransfer(&g_edmaHandle, &transferConfig);
-
-    /* Disable major loop completion interrupt — we poll the buffer, no handler needed */
-    EDMA_DisableChannelInterrupts(DEMO_DMA_BASE, DEMO_DMA_CHANNEL, kEDMA_MajorInterruptEnable);
-
-    /* Circular destination: wrap back to buffer start after each major loop */
-    EDMA_SetModulo(DEMO_DMA_BASE, DEMO_DMA_CHANNEL, kEDMA_ModuloDisable, kEDMA_Modulo16bytes);
-
-    EDMA_StartTransfer(&g_edmaHandle);
+    EDMA_SetCallback(&g_edmaHandle, EDMA_Callback, NULL);
+    DMA_Arm();
 }
 
 /*******************************************************************************
@@ -124,9 +126,21 @@ int main(void)
 
     while (1)
     {
-        SysTick_DelayTicks(1000U);
-        uint16_t sample = g_adcBuf[0] / 8U;
+        /* Wait for DMA to fill the buffer */
+        while (!g_dmaTransferDone)
+        {
+        }
+        g_dmaTransferDone = false;
+
+        /* Stop ADC, print latest sample, restart */
+        LPADC_Deinit(DEMO_LPADC_BASE);
+        uint16_t sample = (uint16_t)(g_adcBuf[ADC_BUF_SIZE - 1U] / 8U);
         PRINTF("ADC sample: %u\r\n", sample);
         RGPIO_TogglePinsOutput(EXAMPLE_LED_GPIO, 1UL << EXAMPLE_LED_GPIO_PIN);
+
+        /* Reinit ADC and rearm DMA for next burst */
+        ADC_Init();
+        DMA_Arm();
+        LPADC_DoSoftwareTrigger(DEMO_LPADC_BASE, 1UL);
     }
 }
