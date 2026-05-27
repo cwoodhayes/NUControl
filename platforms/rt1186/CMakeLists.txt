@@ -8,6 +8,12 @@ set(TARGET_NAME blinky_cm33)
 add_executable(${TARGET_NAME}
     src/led_blinky.cpp
     src/hardware_init.cpp
+    src/current_sense_rt1186.cpp
+)
+
+target_include_directories(${TARGET_NAME} PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../core
 )
 
 target_link_libraries(${TARGET_NAME} PRIVATE RT1186CMake::driverlib)
