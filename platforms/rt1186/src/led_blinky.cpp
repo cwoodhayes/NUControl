@@ -7,10 +7,11 @@
 
 #include "board.h"
 #include "app.hpp"
+#include "fsl_debug_console.h"
 
 volatile uint32_t g_systickCounter;
 
-void SysTick_Handler(void)
+extern "C" void SysTick_Handler(void)
 {
     if (g_systickCounter != 0U)
     {
@@ -45,6 +46,7 @@ int main(void)
     while (1)
     {
         /* Delay 1000 ms */
+        PRINTF("helloworld\r\n");
         SysTick_DelayTicks(1000U);
         RGPIO_TogglePinsOutput(EXAMPLE_LED_GPIO, 1UL << EXAMPLE_LED_GPIO_PIN);
     }
