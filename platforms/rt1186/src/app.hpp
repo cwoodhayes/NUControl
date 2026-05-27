@@ -14,6 +14,12 @@
 #define EXAMPLE_LED_GPIO     BOARD_USER_LED_GPIO
 #define EXAMPLE_LED_GPIO_PIN BOARD_USER_LED_GPIO_PIN
 
+#define DEMO_LPADC_BASE          ADC1
+#define DEMO_LPADC_CHANNEL_NUM   1U
+#define DEMO_LPADC_VREF_SOURCE   kLPADC_ReferenceVoltageAlt2
+#define DEMO_DMA_BASE            DMA4
+#define DEMO_DMA_CHANNEL         0U
+#define ADC_DMA_REQUEST_SOURCE   kDma4RequestMuxADC1Request0
 /*${macro:end}*/
 
 /*******************************************************************************
